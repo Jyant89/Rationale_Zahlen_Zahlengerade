@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Zahlengerade-Abenteuer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --night:#1E2638; --night-2:#2B3552; --ink:#1B2433; --muted:#5A6577;
+  --paper:#FFF8EC; --paper-2:#F5E9D2; --line:#E0CFAE; --frame:#C9A86A;
+  --neg:#2F6FD0; --neg-d:#1F4F9E; --neg-soft:#DCEBFF;
+  --pos:#E0A21B; --pos-d:#8A5A00; --pos-soft:#FFF0C9;
+  --magic:#7A3FC4; --magic-soft:#EFE5FB;
+  --ok:#1E7F45; --ok-soft:#DDF3E5; --bad:#B42318; --bad-soft:#FCE5E2; --heart:#E0424F;
+  --display:"Fredoka","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--night); color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.45; overflow:hidden}
+h1,h2,h3{font-family:var(--display); margin:0; text-wrap:balance; line-height:1.15}
+p{margin:0}
+button{font:inherit; color:inherit}
+:focus-visible{outline:3px solid #B98CF0; outline-offset:2px}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+.app{height:100%; display:grid; grid-template-rows:auto minmax(170px,1fr) auto; grid-template-columns:minmax(0,1fr); overflow:hidden}
+
+/* HUD */
+.hud{display:flex; align-items:center; gap:10px 14px; padding:8px 16px; background:var(--night); color:#F4EFE3; flex-wrap:wrap}
+.who{display:flex; align-items:center; gap:10px; min-width:0}
+.who-name{font:600 17px var(--display); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px}
+.lv{font:600 14px var(--display); background:var(--magic); color:#fff; border-radius:8px; padding:2px 8px; white-space:nowrap}
+.xp{display:grid; gap:2px}
+.xpbar{width:120px; height:10px; border-radius:6px; background:#3A4566; overflow:hidden}
+.xpbar span{display:block; height:100%; width:0; background:linear-gradient(90deg,#C9A6F5,#8B52D6); transition:width .5s}
+.xptext{font:500 12px var(--display); color:#C8C2D8}
+.where{flex:1; text-align:center; font:600 16px var(--display); min-width:140px}
+.where small{display:block; font:500 13px var(--display); color:#C8C2D8}
+.hearts{display:flex; gap:2px}
+.hearts svg{width:22px; height:22px; display:block}
+.hbtns{display:flex; gap:6px}
+.hbtn{background:var(--night-2); color:#F4EFE3; border:0; border-radius:10px; padding:8px 12px; font:600 14px var(--display); cursor:pointer; min-height:40px}
+.hbtn:hover{background:#3A4670}
+
+
+/* Scene */
+.scene{position:relative; overflow:hidden; background:#CFE2F6; min-height:0}
+#world{width:100%; height:100%; display:block; touch-action:manipulation; user-select:none; -webkit-user-select:none}
+#world text{font-family:var(--display)}
+.stone{cursor:pointer}
+.stone .top{transition:stroke-width .2s}
+.st-cur .top{stroke:#7A3FC4; stroke-width:6}
+.bob{animation:bob 1.8s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
+.pop{animation:pop .55s cubic-bezier(.2,1.6,.4,1) both; transform-box:fill-box; transform-origin:50% 100%}
+@keyframes pop{from{transform:scale(.2); opacity:0}to{transform:scale(1); opacity:1}}
+.floatup{animation:floatup 1.6s ease-out forwards}
+@keyframes floatup{from{transform:translateY(0); opacity:1}to{transform:translateY(-60px); opacity:0}}
+.shake{animation:shake .5s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@media (prefers-reduced-motion: reduce){ .bob,.pop,.floatup,.shake{animation:none!important} .xpbar span{transition:none} }
+
+/* Panel */
+.panel{background:var(--paper); border-top:4px solid var(--frame); padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 14px); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:12px 20px; align-items:start; max-height:52vh; overflow-y:auto}
+@media (max-width:860px){ .panel{grid-template-columns:1fr} }
+.npc{display:flex; gap:12px; align-items:flex-start}
+.owl{width:62px; height:62px; flex:none}
+.bubble{background:#fff; border:2px solid var(--line); border-radius:14px; padding:10px 14px; font-size:17px; line-height:1.45; flex:1; min-height:62px}
+.bubble b{font-family:var(--display)}
+.bubble .ok{color:var(--ok); font-weight:700}
+.bubble .bad{color:var(--bad); font-weight:700}
+.task{display:grid; gap:10px}
+.task-top{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.task-lbl{font:600 13px var(--display); letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.expr{font:700 clamp(30px,4.6vw,46px)/1.1 var(--display); font-variant-numeric:tabular-nums}
+.expr .n{color:var(--neg-d)} .expr .p{color:var(--ink)}
+.expr .op{padding-inline:4px} .expr .plus{color:var(--pos-d)} .expr .minus{color:var(--neg)}
+.counter{font:600 15px var(--display); color:var(--muted); min-height:1.3em}
+.controls{display:flex; flex-wrap:wrap; gap:8px}
+.cbtn{min-height:52px; padding:8px 16px; border-radius:14px; border:2px solid var(--ink); background:#fff; font:600 17px var(--display); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; touch-action:manipulation}
+.cbtn:hover{filter:brightness(.97)}
+.cbtn.go{background:var(--ink); color:#fff}
+.cbtn.left{border-color:var(--neg); color:var(--neg-d); background:var(--neg-soft)}
+.cbtn.right{border-color:var(--pos); color:var(--pos-d); background:var(--pos-soft)}
+.cbtn.ghost{border-color:var(--line); background:transparent; color:var(--ink)}
+.cbtn.magic{border-color:var(--magic); background:var(--magic); color:#fff}
+.cbtn:disabled{opacity:.4; cursor:default}
+.hintcard{background:var(--pos-soft); border:2px dashed var(--pos); border-radius:12px; padding:10px 14px; font-size:16px}
+.hintcard b.lbl{display:block; font:700 12px var(--display); letter-spacing:.1em; text-transform:uppercase; color:var(--pos-d)}
+
+/* Overlays */
+.ov{position:fixed; inset:0; z-index:20; background:rgba(18,23,36,.74); display:grid; place-items:center; padding:20px 16px; overflow-y:auto}
+.parch{background:var(--paper); border-radius:22px; border:3px solid var(--frame); box-shadow:0 20px 60px rgba(0,0,0,.45); padding:24px; width:min(820px,100%); display:grid; gap:16px}
+@media (max-width:600px){ .parch{padding:18px 16px} }
+.eyebrow{font:600 13px var(--display); letter-spacing:.12em; text-transform:uppercase; color:var(--magic)}
+.big-title{font:700 clamp(34px,6vw,60px)/1.02 var(--display); color:var(--ink)}
+.lead{font-size:18px; color:#3D4656; max-width:60ch}
+.row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.choices{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+.choice{border:2px solid var(--line); border-radius:14px; padding:10px; background:#fff; cursor:pointer; display:grid; justify-items:center; gap:4px; text-align:center}
+.choice[aria-pressed="true"]{border-color:var(--magic); background:var(--magic-soft); box-shadow:0 0 0 2px var(--magic)}
+.choice b{font:600 16px var(--display)}
+.choice small{font-size:14px; color:var(--muted)}
+.choice svg{width:84px; height:96px}
+.sws{display:flex; gap:10px; flex-wrap:wrap}
+.sw{width:40px; height:40px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px var(--line); cursor:pointer}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 4px var(--magic)}
+.field{display:grid; gap:6px}
+.field label{font:600 15px var(--display)}
+.field input{min-height:50px; border-radius:12px; border:2px solid var(--line); padding:8px 14px; font:600 20px var(--display); background:#fff; width:min(360px,100%)}
+.field input:focus{outline:3px solid #B98CF0; border-color:var(--magic)}
+.err{color:var(--bad); font-size:15px; min-height:1.2em}
+.dots{display:inline-flex; gap:3px; color:var(--magic)}
+.dots i{width:10px; height:10px; border-radius:50%; border:2px solid currentColor}
+.dots i.f{background:currentColor}
+.teacher{background:#fff; border:2px solid var(--line); border-radius:14px; padding:4px 16px}
+.teacher summary{cursor:pointer; font:600 16px var(--display); padding:10px 0; min-height:44px}
+.teacher ul{margin:0 0 12px; padding-left:1.2em; display:grid; gap:6px; font-size:15px}
+.teacher h4{font:600 15px var(--display); margin:8px 0 4px}
+#map{width:100%; height:auto; display:block; border-radius:16px}
+.mapnode{cursor:pointer}
+.mapnode.locked{cursor:not-allowed}
+.maplist{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px}
+.mbtn{border:2px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; text-align:left; cursor:pointer; display:grid; gap:2px; min-height:60px}
+.mbtn b{font:600 15px var(--display)}
+.mbtn small{font-size:13px; color:var(--muted)}
+.mbtn[disabled]{opacity:.5; cursor:not-allowed}
+.mbtn.done{border-color:var(--ok)}
+.scroll{background:linear-gradient(#FBF0D9,#F3DFB6); border:3px solid var(--frame); border-radius:18px; padding:18px 20px; display:grid; gap:10px}
+.scroll h3{font-size:24px}
+.scroll .rule{font-size:20px; line-height:1.45}
+.scroll .ex{font:600 20px var(--display); color:#4A3A1A}
+.heft{display:inline-flex; align-items:center; gap:8px; background:var(--ok-soft); color:var(--ok); font:600 15px var(--display); padding:6px 12px; border-radius:999px; width:max-content}
+.book{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px}
+.locked-scroll{opacity:.55; filter:grayscale(1)}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
+.stat{background:#fff; border:2px solid var(--line); border-radius:14px; padding:10px 14px; display:grid}
+.stat b{font:700 30px var(--display)}
+.stat span{font-size:14px; color:var(--muted)}
+.toast{position:fixed; left:50%; top:76px; transform:translateX(-50%); z-index:40; background:var(--magic); color:#fff; padding:10px 20px; border-radius:999px; font:600 18px var(--display); box-shadow:0 10px 30px rgba(0,0,0,.3); max-width:calc(100% - 32px); text-align:center}
+.confirm{display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:15px}
+#world.fog #stones, #world.fog #arcs, #world.fog #flags{display:none}
+.num-in{display:inline-flex; align-items:center; gap:6px}
+.num-in input{width:8.5em; min-height:52px; padding:8px 12px; border-radius:14px; border:2px solid var(--ink); background:#fff; font:700 24px var(--display); font-variant-numeric:tabular-nums}
+.num-in input:focus{outline:3px solid #B98CF0; border-color:var(--magic)}
+.sign-btn{min-width:52px; min-height:52px; border-radius:14px; border:2px solid var(--line); background:#fff; font:700 22px var(--display); cursor:pointer}
+.expr.plain span{color:var(--ink)}
+.exprog{display:flex; gap:4px}
+.exprog i{flex:1; height:8px; border-radius:4px; background:var(--paper-2)}
+.exprog i.d{background:var(--ink)} .exprog i.c{background:var(--magic)}
+.res-list{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px}
+.res-list li{display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:10px; background:#fff; border:2px solid var(--line); font-size:15px}
+.ric{width:24px; height:24px; border-radius:50%; display:grid; place-items:center; font:700 13px var(--display); color:#fff; flex:none}
+.ric.ok{background:var(--ok)} .ric.no{background:var(--bad)} .ric.vz{background:var(--pos-d)}
+.score{font:700 clamp(40px,7vw,64px)/1 var(--display)}
+.verdict{font:600 20px var(--display)}
+.gate{display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#fff; border:2px dashed var(--line); border-radius:14px; padding:10px 12px; font-size:15px}
+.gate input{min-height:44px; border-radius:10px; border:2px solid var(--line); padding:6px 12px; font:600 17px var(--display); width:160px; text-transform:uppercase}
+@media (max-width:640px){
+  .hud{padding:6px 12px; gap:8px}
+  .xp, .where{display:none}
+  .who-name{max-width:96px; font-size:15px}
+  .lv{display:none}
+  .hearts svg{width:18px; height:18px}
+  .hbtns{margin-left:auto}
+  .hearts{flex:none}
+  .hbtn{padding:6px 9px; font-size:13px; min-height:36px}
+  .panel{max-height:60vh; gap:8px; padding-top:10px}
+  .owl{width:44px; height:44px}
+  .bubble{font-size:15px; padding:8px 10px; min-height:0}
+  .controls{display:grid; grid-template-columns:1fr 1fr}
+  .cbtn{min-height:48px; font-size:15px; padding:6px 10px}
+  .expr{font-size:32px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud" id="hud">
+    <div class="who"><svg width="34" height="34" viewBox="-30 -110 60 120" aria-hidden="true" id="hudHero"></svg><span class="who-name" id="hudName">Held</span><span class="lv" id="hudLv">Lv 1</span></div>
+    <div class="xp"><div class="xpbar"><span id="hudXp"></span></div><span class="xptext" id="hudXpText">0 EP</span></div>
+    <div class="where" id="hudWhere">Numeria<small>Wähle ein Abenteuer</small></div>
+    <div class="hearts" id="hudHearts" aria-label="Herzen"></div>
+    <div class="hbtns"><button class="hbtn" type="button" id="btnMap">Karte</button><button class="hbtn" type="button" id="btnBook">Zauberbuch</button><button class="hbtn" type="button" id="btnMenu">Menü</button></div>
+  </header>
+
+  <div class="scene" id="scene">
+    <svg id="world" viewBox="0 0 1200 460" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Zahlengerade mit deinem Helden">
+      <defs>
+        <linearGradient id="gSky" gradientUnits="userSpaceOnUse" x1="-1700" y1="0" x2="1700" y2="0">
+          <stop offset="0" stop-color="#93BBE8"/><stop offset=".42" stop-color="#CFE2F6"/><stop offset=".5" stop-color="#F3EAD6"/><stop offset=".58" stop-color="#FCE6AE"/><stop offset="1" stop-color="#F6C46A"/>
+        </linearGradient>
+        <linearGradient id="gSnow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F8FD"/><stop offset="1" stop-color="#D3E3F5"/></linearGradient>
+        <linearGradient id="gGrass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9D46F"/><stop offset="1" stop-color="#78AE4A"/></linearGradient>
+      </defs>
+      <g id="sky"></g>
+      <g id="par"></g>
+      <g id="cam">
+        <g id="ground"></g>
+        <g id="deco"></g>
+        <g id="stones"></g>
+        <g id="flags"></g>
+        <g id="arcs"></g>
+        <g id="hero"><g id="heroBody" class="bob"></g></g>
+        <g id="fx"></g>
+      </g>
+      <g id="boss"></g>
+      <g id="mist"></g>
+    </svg>
+  </div>
+
+  <section class="panel" id="panel" aria-label="Aufgabe und Steuerung">
+    <div class="npc">
+      <svg class="owl" viewBox="0 0 64 64" aria-hidden="true"><path d="M12,20 L20,24 L15,11 Z" fill="#7A4E26"/><path d="M52,20 L44,24 L49,11 Z" fill="#7A4E26"/><ellipse cx="32" cy="38" rx="22" ry="23" fill="#8A5A2B"/><ellipse cx="32" cy="45" rx="13" ry="14" fill="#EBCB9C"/><circle cx="23" cy="29" r="9" fill="#fff"/><circle cx="41" cy="29" r="9" fill="#fff"/><circle cx="24" cy="30" r="4.5" fill="#1B2433"/><circle cx="40" cy="30" r="4.5" fill="#1B2433"/><path d="M29,36 L35,36 L32,42 Z" fill="#E0A21B"/><circle cx="32" cy="50" r="5" fill="none" stroke="#8A5A2B" stroke-width="2.5"/></svg>
+      <div class="bubble" id="npc" aria-live="polite"></div>
+    </div>
+    <div class="task" id="task"></div>
+  </section>
+</div>
+
+<!-- Titel -->
+<div class="ov" id="ovTitle" hidden>
+  <div class="parch">
+    <p class="eyebrow">Ein Rollenspiel für Minuszahlen</p>
+    <h1 class="big-title">Das Zahlengerade-Abenteuer</h1>
+    <p class="lead">Der Nullkönig hat die Schätze von Numeria versteckt. Du findest sie nur, wenn du richtig auf der Zahlengerade springst. Plus heißt: nach rechts. Minus heißt: nach links.</p>
+    <div class="row" id="titleBtns"></div>
+    <div class="confirm" id="newConfirm" hidden>Dein alter Held wird gelöscht. Wirklich neu anfangen?
+      <button class="cbtn go" type="button" id="newYes">Ja, neu anfangen</button>
+      <button class="cbtn ghost" type="button" id="newNo">Abbrechen</button>
+    </div>
+    <details class="teacher">
+      <summary>Für Lehrkräfte: Ablauf der Doppelstunde</summary>
+      <h4>Lernziel</h4>
+      <ul><li>Die SuS addieren und subtrahieren ganze Zahlen ohne Klammern, z. B. −3 + 5, 2 − 6, −4 − 3. Sie nutzen dafür die Zahlengerade: Plus heißt nach rechts springen, Minus heißt nach links springen.</li></ul>
+      <h4>Ablauf (90 Minuten)</h4>
+      <ul>
+        <li><b>Einstieg (10 Min.):</b> Erste Aufgabe gemeinsam am Beamer spielen. Regel „Plus → rechts, Minus → links“ an die Tafel.</li>
+        <li><b>Erarbeitung (25 Min.):</b> Dorf Nullpunkt und Eiswald. Jede Region endet mit einer Schriftrolle. Die SuS schreiben sie ins Heft.</li>
+        <li><b>Zwischensicherung (5 Min.):</b> Schriftrollen 1 und 2 im Plenum besprechen.</li>
+        <li><b>Übung (35 Min.):</b> Frostfluss und Vulkanbrücke. Schnelle SuS gehen zum Turm des Nullkönigs.</li>
+        <li><b>Meisterprüfung (10 Min.):</b> 10 Aufgaben ohne Zahlengerade, ein Versuch, keine Hilfekarten. So siehst du, wer die Regeln ohne das Modell anwenden kann.</li>
+        <li><b>Sicherung (5 Min.):</b> Zauberbuch ins Heft. Die SuS zeigen ihre Urkunde mit dem Prüfungsergebnis.</li>
+      </ul>
+      <h4>Differenzierung</h4>
+      <ul>
+        <li>Drei Stufen beim Erstellen des Helden: Wanderer (−10 bis 10), Ritter (−15 bis 15), Held (−20 bis 20, im Endkampf Doppelsprünge).</li>
+        <li>Hilfekarte bei jeder Aufgabe. Bei 0 Herzen gibt es eine Pause am Lagerfeuer mit der Regel. Niemand fliegt raus.</li>
+        <li>Jedes Gerät bekommt eigene, zufällige Aufgaben. Abschreiben vom Nachbarn hilft nicht.</li>
+        <li>Die Meisterprüfung öffnet sich nach dem Frostfluss von selbst. Für alle anderen gibst du sie am Ende mit dem Prüfungswort frei (siehe deine Anleitung). Es zählt nur der erste Versuch. Danach gibt es Übungsrunden, die nicht zählen.</li>
+      </ul>
+      <h4>Hinweise</h4>
+      <ul>
+        <li>Die SuS erfinden einen Heldennamen und geben nicht ihren echten Namen ein.</li>
+        <li>Der Spielstand bleibt im Browser des Geräts.</li>
+        <li>Steuerung auch per Tastatur: Pfeiltasten springen, Enter bestätigt, H öffnet die Hilfekarte.</li>
+      </ul>
+      <h4>Demo-Modus für den Beamer</h4>
+      <div class="row"><label class="sr" for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" style="min-height:44px; border-radius:10px; border:2px solid var(--line); padding:6px 12px; font:600 17px var(--display); width:140px"><button class="cbtn ghost" type="button" id="pinGo">Alle Regionen freischalten</button><span class="err" id="pinMsg" aria-live="polite"></span></div>
+      <p style="font-size:14px; color:var(--muted); margin:6px 0 12px">Die PIN ist dieselbe wie beim Testzugang der Lernseite.</p>
+    </details>
+  </div>
+</div>
+
+<!-- Held erstellen -->
+<div class="ov" id="ovCreate" hidden>
+  <form class="parch" id="createForm" novalidate>
+    <p class="eyebrow">Neues Abenteuer</p>
+    <h2 style="font-size:32px">Erschaffe deinen Helden</h2>
+    <div class="field"><label for="heroName">Heldenname</label><input id="heroName" maxlength="16" autocomplete="off" placeholder="z. B. Blitz"><p style="font-size:14px; color:var(--muted)">Erfinde einen Namen. Nicht deinen echten Namen.</p><p class="err" id="nameErr" aria-live="polite"></p></div>
+    <div class="field"><span style="font:600 15px var(--display)">Figur</span><div class="choices" id="avatarChoices" role="group" aria-label="Figur wählen"></div></div>
+    <div class="row" style="gap:28px; align-items:flex-start">
+      <div class="field"><span style="font:600 15px var(--display)">Farbe</span><div class="sws" id="colorChoices" role="group" aria-label="Farbe wählen"></div></div>
+      <div class="field"><span style="font:600 15px var(--display)">Hautfarbe</span><div class="sws" id="skinChoices" role="group" aria-label="Hautfarbe wählen"></div></div>
+    </div>
+    <div class="field"><span style="font:600 15px var(--display)">Schwierigkeit</span><div class="choices" id="diffChoices" role="group" aria-label="Schwierigkeit wählen"></div></div>
+    <div class="row"><button class="cbtn go" type="submit">Abenteuer starten</button><button class="cbtn ghost" type="button" id="createBack">Zurück</button></div>
+  </form>
+</div>
+
+<!-- Karte -->
+<div class="ov" id="ovMap" hidden>
+  <div class="parch" style="width:min(960px,100%)">
+    <div class="row" style="justify-content:space-between"><div><p class="eyebrow">Die Karte von Numeria</p><h2 style="font-size:30px">Wohin geht deine Reise?</h2></div><button class="cbtn ghost" type="button" id="mapBook">Zauberbuch</button></div>
+    <svg id="map" viewBox="0 0 900 400" role="img" aria-label="Karte mit fünf Regionen"></svg>
+    <div class="maplist" id="mapList"></div>
+    <div class="gate" id="examGate" hidden><span>Deine Lehrkraft gibt die Meisterprüfung frei:</span><label class="sr" for="gateWord">Prüfungswort</label><input id="gateWord" autocomplete="off" placeholder="Prüfungswort"><button class="cbtn ghost" type="button" id="gateGo" style="min-height:44px">Freischalten</button><span class="err" id="gateMsg" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<!-- Schriftrolle -->
+<div class="ov" id="ovScroll" hidden>
+  <div class="parch">
+    <p class="eyebrow" id="scrollEyebrow">Region geschafft</p>
+    <h2 style="font-size:30px" id="scrollTitle">Neue Schriftrolle!</h2>
+    <div id="scrollBody"></div>
+    <span class="heft">✎ Schreibe die Schriftrolle in dein Heft.</span>
+    <div class="row"><button class="cbtn go" type="button" id="scrollNext">Zur Karte</button></div>
+  </div>
+</div>
+
+<!-- Zauberbuch -->
+<div class="ov" id="ovBook" hidden>
+  <div class="parch" style="width:min(960px,100%)">
+    <div class="row" style="justify-content:space-between"><div><p class="eyebrow">Zauberbuch</p><h2 style="font-size:30px">Deine Schriftrollen</h2></div><button class="cbtn go" type="button" id="bookClose">Schließen</button></div>
+    <p>Jede Region schenkt dir eine Regel. Schreibe alle Regeln in dein Heft.</p>
+    <div class="book" id="bookList"></div>
+  </div>
+</div>
+
+<!-- Lagerfeuer -->
+<div class="ov" id="ovFire" hidden>
+  <div class="parch">
+    <p class="eyebrow">Rast am Lagerfeuer</p>
+    <h2 style="font-size:30px">Deine Herzen sind leer</h2>
+    <svg viewBox="0 0 200 110" width="160" height="88" aria-hidden="true"><ellipse cx="100" cy="100" rx="70" ry="8" fill="#C9A86A" opacity=".5"/><rect x="60" y="86" width="80" height="10" rx="5" fill="#7A4E26" transform="rotate(12 100 91)"/><rect x="60" y="86" width="80" height="10" rx="5" fill="#8A5A2B" transform="rotate(-12 100 91)"/><path d="M100,20 C120,45 130,60 118,82 C112,92 88,92 82,82 C70,60 82,45 100,20 Z" fill="#F08A24"/><path d="M100,45 C110,60 114,70 108,82 C104,88 96,88 92,82 C86,70 92,60 100,45 Z" fill="#FFD25A"/></svg>
+    <p>Kein Problem. Jeder Held braucht mal eine Pause. Lies die Regel noch einmal:</p>
+    <div class="scroll"><p class="rule"><b>Plus</b> heißt: nach <b>rechts</b> springen.<br><b>Minus</b> heißt: nach <b>links</b> springen.<br>Starte immer bei der ersten Zahl. Zähle dann jeden Sprung laut mit: eins, zwei, drei …</p></div>
+    <div class="row"><button class="cbtn go" type="button" id="fireRest">Ausruhen und weiterspielen</button></div>
+  </div>
+</div>
+
+<!-- Meisterprüfung: Start -->
+<div class="ov" id="ovExam" hidden>
+  <div class="parch">
+    <p class="eyebrow">Meisterprüfung</p>
+    <h2 style="font-size:32px">Jetzt ohne Zahlengerade!</h2>
+    <p class="lead">Der Nullkönig hat die Zahlengerade in Nebel gehüllt. Zeig, dass du die Regeln jetzt im Kopf kannst.</p>
+    <ul style="margin:0; padding-left:1.2em; display:grid; gap:6px">
+      <li>10 Aufgaben, etwa 10 Minuten.</li>
+      <li>Es gibt keine Zahlengerade und keine Hilfekarten.</li>
+      <li>Du hast bei jeder Aufgabe nur einen Versuch.</li>
+      <li>Rechne im Kopf und tippe das Ergebnis ein. Denk an das Minus!</li>
+    </ul>
+    <p id="examNote" style="font-size:15px; color:var(--muted)"></p>
+    <div class="row"><button class="cbtn magic" type="button" id="examGo">Prüfung starten</button><button class="cbtn ghost" type="button" id="examBack">Zurück zur Karte</button></div>
+  </div>
+</div>
+
+<!-- Meisterprüfung: Ergebnis -->
+<div class="ov" id="ovExamRes" hidden>
+  <div class="parch">
+    <p class="eyebrow" id="exResEyebrow">Meisterprüfung</p>
+    <p class="score" id="exScore"></p>
+    <p class="verdict" id="exVerdict"></p>
+    <ul class="res-list" id="exList"></ul>
+    <p id="exNote" style="font-size:16px"></p>
+    <p style="font-size:15px; color:var(--muted)">Die Lösungen besprecht ihr gemeinsam. Zeig dein Ergebnis deiner Lehrkraft.</p>
+    <div class="row"><button class="cbtn go" type="button" id="exCert">Zur Urkunde</button><button class="cbtn ghost" type="button" id="exPractice">Übungsrunde (zählt nicht)</button><button class="cbtn ghost" type="button" id="exMap">Zur Karte</button></div>
+  </div>
+</div>
+
+<!-- Urkunde -->
+<div class="ov" id="ovCert" hidden>
+  <div class="parch" style="text-align:center; justify-items:center">
+    <p class="eyebrow">Urkunde</p>
+    <svg width="120" height="140" viewBox="-40 -120 80 130" aria-hidden="true" id="certHero"></svg>
+    <h2 style="font-size:clamp(28px,5vw,44px)" id="certName">Held</h2>
+    <p class="lead" id="certText"></p>
+    <div class="stats" id="certStats" style="width:100%"></div>
+    <p style="font-size:15px; color:var(--muted)">Zeig die Urkunde deiner Lehrkraft. Übertrage danach das Zauberbuch in dein Heft.</p>
+    <div class="row" style="justify-content:center"><button class="cbtn go" type="button" id="certBook">Zauberbuch öffnen</button><button class="cbtn ghost" type="button" id="certMap">Weiter üben</button></div>
+  </div>
+</div>
+
+<!-- Menü -->
+<div class="ov" id="ovMenu" hidden>
+  <div class="parch" style="width:min(520px,100%)">
+    <h2 style="font-size:28px">Menü</h2>
+    <div class="stats" id="menuStats"></div>
+    <div class="row"><button class="cbtn go" type="button" id="menuBack">Weiterspielen</button><button class="cbtn ghost" type="button" id="menuTitle">Zum Startbildschirm</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const MINUS='−';
+const RM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+const fmt=n=>n<0?MINUS+Math.abs(n):String(n);
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='zg-rpg-v1';
+function load(){ try{ const r=window.localStorage.getItem(KEY); return r?JSON.parse(r):null; }catch(_){ return null; } }
+function save(){ try{ window.localStorage.setItem(KEY,JSON.stringify(S)); }catch(_){} }
+
+/* ---------- Spielwelt-Daten ---------- */
+const REGIONS=[
+  {name:'Dorf Nullpunkt', sub:'Lerne das Springen', n:5},
+  {name:'Eiswald', sub:'Start im Minus, dann plus', n:5},
+  {name:'Frostfluss', sub:'Minus rechnen', n:5},
+  {name:'Vulkanbrücke', sub:'Alles gemischt', n:6},
+  {name:'Turm des Nullkönigs', sub:'Der Endkampf', n:6, boss:true}
+];
+const SCROLLS=[
+  {t:'Die Sprungregel', r:'<b>Plus</b> heißt: Ich springe nach <b>rechts</b>.<br><b>Minus</b> heißt: Ich springe nach <b>links</b>.', ex:['2 + 3 = 5','2 − 5 = −3']},
+  {t:'Start im Minus', r:'Ich starte bei einer Minuszahl und rechne plus. Dann springe ich nach rechts. Ich komme der 0 näher oder springe darüber.', ex:['−4 + 3 = −1','−2 + 6 = 4']},
+  {t:'Minus macht kleiner', r:'Ich rechne minus. Dann springe ich nach links. Von einer Minuszahl aus komme ich noch weiter ins Minus.', ex:['1 − 4 = −3','−2 − 3 = −5']},
+  {t:'Über die 0 springen', r:'Ich teile den Sprung: Erst springe ich bis zur 0. Dann springe ich den Rest.', ex:['3 − 5: erst 3 bis zur 0, dann noch 2 → −2','−4 + 7: erst 4 bis zur 0, dann noch 3 → 3']},
+  {t:'Meister der Zahlengerade', r:'So löse ich jede Aufgabe:<br>1. Startzahl suchen.<br>2. Rechenzeichen ansehen: plus nach rechts, minus nach links.<br>3. Die Sprünge genau zählen.', ex:['−6 + 2 = −4','5 − 9 = −4']}
+];
+const AVATARS=[{k:'ritter',n:'Ritter'},{k:'magier',n:'Magier'},{k:'entdecker',n:'Entdecker'},{k:'robo',n:'Roboter'}];
+const COLORS=['#C2410C','#7A3FC4','#0F766E','#1D4ED8','#BE185D','#4D7C0F'];
+const SKINS=['#F5D3B3','#E1A97A','#B97A4E','#7A4E2D'];
+const DIFFS=[{d:1,n:'Wanderer',s:'Zahlen von −10 bis 10'},{d:2,n:'Ritter',s:'Zahlen von −15 bis 15, größere Sprünge'},{d:3,n:'Held',s:'Zahlen von −20 bis 20, im Endkampf Doppelsprünge'}];
+const ITEMS=[{lv:2,n:'Sprungstiefel'},{lv:3,n:'Heldenumhang'},{lv:4,n:'Sternamulett'},{lv:5,n:'Krone'},{lv:6,n:'Zauberglanz'}];
+const XPL=60;
+const level=xp=>Math.min(8,1+Math.floor(xp/XPL));
+
+function fresh(){ return {v:1,hero:null,diff:1,xp:0,hearts:5,pos:0,progress:REGIONS.map(()=>({done:0,complete:false})),tasks:REGIONS.map(()=>null),scrolls:REGIONS.map(()=>false),stats:{solved:0,first:0,hints:0,wrong:0,startErr:0},demo:false,quest:null,boss:6,finished:false,exam:null,examResult:null,examOpen:false}; }
+let S=load(); if(!S||S.v!==1||!Array.isArray(S.progress)) S=fresh();
+
+/* ---------- Aufgaben erzeugen (ohne Klammern) ---------- */
+function genRegion(r,diff){
+  const R=[10,15,20][diff-1], J=[6,10,15][diff-1], n=REGIONS[r].n, out=[];
+  let guard=0;
+  while(out.length<n && guard++<20000){
+    const i=out.length; let t=null;
+    if(r===0){
+      if(i===0){ t={s:rnd(1,4),ops:[[1,rnd(2,5)]]}; }
+      else if(i===1){ const s=rnd(5,Math.min(R,8)); t={s,ops:[[-1,rnd(2,s-1)]]}; }
+      else { const s=rnd(1,Math.min(6,R-1)); t={s,ops:[[-1,rnd(s+1,s+Math.min(J,R))]]}; }
+    } else if(r===1){
+      const s=-rnd(1,R-1), b=rnd(1,J); t={s,ops:[[1,b]]};
+      if(i%2===1&&s+b<=0) t=null;
+      if(i%2===0&&i<4&&s+b>0) t=null;
+    } else if(r===2){
+      if(i<2){ const s=rnd(1,Math.min(6,R-1)); t={s,ops:[[-1,rnd(s+1,s+J)]]}; }
+      else { t={s:-rnd(1,R-2),ops:[[-1,rnd(1,J)]]}; }
+    } else if(r===3){
+      const s=rnd(-R+1,R-1), g=Math.random()<.5?1:-1, b=rnd(2,J); t={s,ops:[[g,b]]};
+      if(i<2&&Math.sign(s)===Math.sign(s+g*b)) t=null;
+    } else {
+      const s=rnd(-R+1,R-1), g=Math.random()<.5?1:-1; t={s,ops:[[g,rnd(2,J)]]};
+      if(diff===3&&(i===2||i===4)) t.ops.push([-g,rnd(2,J)]);
+    }
+    if(!t) continue;
+    let p=t.s, ok=t.s>=-R&&t.s<=R&&t.s!==0;
+    for(const o of t.ops){ p+=o[0]*o[1]; if(p<-R||p>R) ok=false; }
+    if(!ok||p===t.s) continue;
+    if(out.some(o=>o.s===t.s&&JSON.stringify(o.ops)===JSON.stringify(t.ops))) continue;
+    t.e=p; out.push(t);
+  }
+  return out;
+}
+function genExam(diff){
+  const R=[10,15,20][diff-1], J=[6,10,15][diff-1];
+  const types=['negPlusStay','posMinusCross','negMinus','negPlusCross','negPlusStay','posMinusCross','negMinus','negPlusCross',diff===3?'two':'mixed',diff>=2?'two':'mixed'];
+  const out=[];
+  types.forEach(ty=>{
+    for(let k=0;k<5000;k++){
+      let t=null;
+      if(ty==='negPlusStay'){ const s=-rnd(3,R); t={s,ops:[[1,rnd(1,Math.min(J,-s-1))]]}; }
+      else if(ty==='negPlusCross'){ const s=-rnd(1,Math.min(R-1,J-1)); t={s,ops:[[1,rnd(-s+1,Math.min(J,-s+R))]]}; }
+      else if(ty==='posMinusCross'){ const s=rnd(1,Math.min(J-1,R)); t={s,ops:[[-1,rnd(s+1,Math.min(J,s+R))]]}; }
+      else if(ty==='negMinus'){ t={s:-rnd(1,R-2),ops:[[-1,rnd(1,J)]]}; }
+      else if(ty==='mixed'){ const s=rnd(-R,R), g=Math.random()<.5?1:-1; t={s,ops:[[g,rnd(2,J)]]}; }
+      else { const s=rnd(-R+1,R-1), g=Math.random()<.5?1:-1; t={s,ops:[[g,rnd(2,J)],[-g,rnd(2,J)]]}; }
+      let p=t.s, ok=t.s!==0&&t.s>=-R&&t.s<=R;
+      for(const o of t.ops){ if(o[1]<1) ok=false; p+=o[0]*o[1]; if(p<-R||p>R) ok=false; }
+      if(!ok||p===t.s||p===0) continue;
+      if(out.some(o=>o.s===t.s&&JSON.stringify(o.ops)===JSON.stringify(t.ops))) continue;
+      t.e=p; out.push(t); break;
+    }
+  });
+  return out;
+}
+function parseNum(str){
+  let s=String(str==null?'':str).trim().replace(/[\u2212\u2013\u2014]/g,'-').replace(/\s+/g,'');
+  if(!/^[+-]?\d+$/.test(s)) return NaN;
+  return parseInt(s,10);
+}
+function opText(o){ return (o[0]>0?'+':MINUS)+' '+o[1]; }
+function exprText(t){ return fmt(t.s)+' '+t.ops.map(opText).join(' '); }
+function exprHTML(t){
+  let h='<span class="'+(t.s<0?'n':'p')+'">'+fmt(t.s)+'</span>';
+  t.ops.forEach(o=>{ h+='<span class="op '+(o[0]>0?'plus':'minus')+'">'+(o[0]>0?'+':MINUS)+'</span><span class="p">'+o[1]+'</span>'; });
+  return h;
+}
+
+/* ---------- Grafik ---------- */
+function shade(hex,f){ const n=parseInt(hex.slice(1),16); let r=n>>16,g=(n>>8)&255,b=n&255; r=Math.round(r*f); g=Math.round(g*f); b=Math.round(b*f); return '#'+((1<<24)+(Math.min(255,r)<<16)+(Math.min(255,g)<<8)+Math.min(255,b)).toString(16).slice(1); }
+function heroSVG(h,lv){
+  h=h||{avatar:'ritter',color:'#7A3FC4',skin:'#E1A97A'};
+  const c=h.color, d=shade(c,.72), sk=h.skin; let g='';
+  if(lv>=6) g+='<circle cx="0" cy="-44" r="50" fill="#FFE7A3" opacity=".45"/>';
+  g+='<ellipse cx="0" cy="2" rx="22" ry="5" fill="#000" opacity=".18"/>';
+  if(lv>=3) g+='<path d="M-14,-52 L14,-52 L24,-8 L-24,-8 Z" fill="#7A3FC4"/><path d="M-14,-52 L14,-52 L18,-30 L-18,-30 Z" fill="#8B52D6"/>';
+  const boot=lv>=2?'#E0A21B':'#3A3F4B';
+  if(h.avatar!=='robo'){
+    g+='<rect x="-11" y="-22" width="8" height="20" rx="3" fill="#3A3F4B"/><rect x="3" y="-22" width="8" height="20" rx="3" fill="#3A3F4B"/>';
+    g+='<rect x="-14" y="-6" width="13" height="8" rx="3" fill="'+boot+'"/><rect x="1" y="-6" width="13" height="8" rx="3" fill="'+boot+'"/>';
+  }
+  const face=(cy)=>'<circle cx="-4.5" cy="'+(cy-1)+'" r="2" fill="#1B2433"/><circle cx="4.5" cy="'+(cy-1)+'" r="2" fill="#1B2433"/><path d="M-4,'+(cy+4)+' Q0,'+(cy+7)+' 4,'+(cy+4)+'" fill="none" stroke="#1B2433" stroke-width="1.8" stroke-linecap="round"/>';
+  let crownY=-80;
+  if(h.avatar==='ritter'){
+    g+='<rect x="-15" y="-52" width="30" height="32" rx="8" fill="'+c+'"/><rect x="-15" y="-30" width="30" height="5" fill="'+d+'"/>';
+    g+='<circle cx="-19" cy="-36" r="11" fill="#D9DEE6" stroke="'+d+'" stroke-width="3"/><path d="M-19,-43 L-19,-29 M-25,-36 L-13,-36" stroke="'+d+'" stroke-width="3"/>';
+    g+='<circle cx="0" cy="-64" r="14" fill="'+sk+'"/>'+face(-63);
+    g+='<path d="M-15,-66 Q-15,-82 0,-82 Q15,-82 15,-66 L15,-70 L-15,-70 Z" fill="#AEB8C6"/><rect x="-2" y="-90" width="4" height="10" rx="2" fill="'+c+'"/>';
+    crownY=-84;
+  } else if(h.avatar==='magier'){
+    g+='<path d="M-12,-54 L12,-54 L19,-16 L-19,-16 Z" fill="'+c+'"/><rect x="-19" y="-20" width="38" height="5" rx="2" fill="'+d+'"/>';
+    g+='<line x1="21" y1="-74" x2="21" y2="0" stroke="#8A5A2B" stroke-width="4" stroke-linecap="round"/><circle cx="21" cy="-78" r="6" fill="#FFD25A"/>';
+    g+='<circle cx="0" cy="-64" r="13" fill="'+sk+'"/>'+face(-63);
+    g+='<ellipse cx="0" cy="-74" rx="20" ry="5" fill="'+d+'"/><path d="M-14,-75 L14,-75 L3,-106 Z" fill="'+c+'"/><circle cx="3" cy="-106" r="3" fill="#FFD25A"/>';
+    crownY=-118;
+  } else if(h.avatar==='entdecker'){
+    g+='<rect x="-23" y="-50" width="12" height="26" rx="4" fill="#8A5A2B"/>';
+    g+='<rect x="-14" y="-52" width="28" height="32" rx="8" fill="'+c+'"/><rect x="-14" y="-30" width="28" height="4" fill="'+d+'"/><line x1="-12" y1="-50" x2="8" y2="-26" stroke="#8A5A2B" stroke-width="3"/>';
+    g+='<circle cx="0" cy="-64" r="13" fill="'+sk+'"/>'+face(-63);
+    g+='<path d="M-14,-69 Q-14,-81 0,-81 Q14,-81 14,-69 Z" fill="'+d+'"/><rect x="4" y="-71" width="16" height="4" rx="2" fill="'+d+'"/>';
+    crownY=-84;
+  } else {
+    g+='<rect x="-10" y="-20" width="7" height="18" rx="2" fill="#7D889A"/><rect x="3" y="-20" width="7" height="18" rx="2" fill="#7D889A"/><rect x="-14" y="-5" width="13" height="7" rx="3" fill="'+boot+'"/><rect x="1" y="-5" width="13" height="7" rx="3" fill="'+boot+'"/>';
+    g+='<rect x="-16" y="-52" width="32" height="32" rx="6" fill="#AEB8C6"/><rect x="-9" y="-46" width="18" height="14" rx="3" fill="'+c+'"/>';
+    g+='<rect x="-14" y="-80" width="28" height="24" rx="6" fill="#C9D1DD"/><circle cx="-6" cy="-69" r="3.5" fill="'+c+'"/><circle cx="6" cy="-69" r="3.5" fill="'+c+'"/><rect x="-6" y="-62" width="12" height="2.5" rx="1" fill="#5A6577"/>';
+    g+='<line x1="0" y1="-80" x2="0" y2="-90" stroke="#7D889A" stroke-width="3"/><circle cx="0" cy="-92" r="4" fill="'+c+'"/>';
+    crownY=-98;
+  }
+  if(lv>=4) g+='<path d="M0,-46 L2.4,-40.6 L8,-40 L3.8,-36.4 L5,-31 L0,-34 L-5,-31 L-3.8,-36.4 L-8,-40 L-2.4,-40.6 Z" fill="#FFD25A" stroke="#8A5A00" stroke-width="1"/>';
+  if(lv>=5) g+='<path d="M-11,'+crownY+' L-11,'+(crownY-11)+' L-5,'+(crownY-5)+' L0,'+(crownY-13)+' L5,'+(crownY-5)+' L11,'+(crownY-11)+' L11,'+crownY+' Z" fill="#FFD25A" stroke="#8A5A00" stroke-width="1.5"/>';
+  return g;
+}
+function heartSVG(full){ return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12,21 C5,15 2,12 2,8 C2,5 4.5,3 7,3 C9,3 11,4.5 12,6 C13,4.5 15,3 17,3 C19.5,3 22,5 22,8 C22,12 19,15 12,21 Z" fill="'+(full?'#E0424F':'#3A4566')+'" stroke="'+(full?'#FFB3BA':'#56628A')+'" stroke-width="1.5"/></svg>'; }
+
+/* ---------- Szene ---------- */
+const svg=$('#world'), sceneEl=$('#scene');
+const U=80, GY=322, WMAX=20;
+let VW=1200; const VH=460;
+const X=n=>n*U;
+const G={sky:$('#sky'),par:$('#par'),cam:$('#cam'),ground:$('#ground'),deco:$('#deco'),stones:$('#stones'),flags:$('#flags'),arcs:$('#arcs'),hero:$('#hero'),heroBody:$('#heroBody'),fx:$('#fx'),boss:$('#boss')};
+function seeded(seed){ let s=seed; return ()=>{ s=(s*16807)%2147483647; return s/2147483647; }; }
+function buildWorld(){
+  G.sky.innerHTML='<rect x="-2400" y="-60" width="4800" height="600" fill="url(#gSky)"/>'+
+    '<circle cx="1250" cy="90" r="46" fill="#FFE08A" opacity=".9"/><circle cx="1250" cy="90" r="64" fill="#FFE08A" opacity=".25"/>';
+  const rr=seeded(7); let m='';
+  for(let x=-1500;x<=1500;x+=150){
+    const h=110+rr()*110, w=170+rr()*80, cold=x<0;
+    m+='<path d="M'+(x-w)+',336 L'+x+','+(336-h)+' L'+(x+w)+',336 Z" fill="'+(cold?'#B7CDE6':'#E8C688')+'" opacity=".9"/>';
+    if(cold) m+='<path d="M'+(x-w*0.28)+','+(336-h*0.72)+' L'+x+','+(336-h)+' L'+(x+w*0.28)+','+(336-h*0.72)+' L'+(x+w*0.1)+','+(336-h*0.66)+' L'+(x-w*0.08)+','+(336-h*0.74)+' Z" fill="#F7FAFE"/>';
+  }
+  G.par.innerHTML=m;
+  G.ground.innerHTML='<rect x="-2400" y="334" width="2400" height="260" fill="url(#gSnow)"/><rect x="0" y="334" width="2400" height="260" fill="url(#gGrass)"/>'+
+    '<rect x="-2400" y="312" width="2400" height="40" fill="#D3E3F6"/><rect x="0" y="312" width="2400" height="40" fill="#E6D3A3"/>'+
+    '<rect x="'+(X(-WMAX)-110)+'" y="250" width="40" height="110" rx="6" fill="#8FA6C2"/><rect x="'+(X(WMAX)+70)+'" y="250" width="40" height="110" rx="6" fill="#B08A4E"/>';
+  const r2=seeded(11); let d='';
+  for(let n=-WMAX+1;n<=-2;n+=2){
+    const x=X(n)+40+r2()*20, s=0.8+r2()*0.5;
+    if(n%4===0){ d+='<g transform="translate('+x+',312) scale('+s.toFixed(2)+')"><rect x="-4" y="-16" width="8" height="16" fill="#6B4A2E"/><path d="M-24,-14 L0,-60 L24,-14 Z" fill="#2F5D7E"/><path d="M-19,-36 L0,-78 L19,-36 Z" fill="#3B7097"/><path d="M-8,-60 L0,-78 L8,-60 Z" fill="#F7FAFE"/></g>'; }
+    else { d+='<g transform="translate('+x+',314) scale('+s.toFixed(2)+')"><path d="M-10,0 L-4,-34 L2,0 Z" fill="#BFE0FA" stroke="#7FB2E0" stroke-width="2"/><path d="M0,0 L8,-24 L14,0 Z" fill="#D8ECFC" stroke="#7FB2E0" stroke-width="2"/></g>'; }
+  }
+  for(let n=2;n<=WMAX-1;n+=2){
+    const x=X(n)+40+r2()*20, s=0.8+r2()*0.5;
+    if(n%4===0){ d+='<g transform="translate('+x+',312) scale('+s.toFixed(2)+')"><rect x="-5" y="-30" width="10" height="30" fill="#7A4E26"/><circle cx="0" cy="-48" r="26" fill="#4E9A3A"/><circle cx="-12" cy="-40" r="16" fill="#5DAE45"/><circle cx="12" cy="-56" r="5" fill="#E0424F"/></g>'; }
+    else { d+='<g transform="translate('+x+',314) scale('+s.toFixed(2)+')"><circle cx="-8" cy="-6" r="5" fill="#FFD25A"/><circle cx="6" cy="-10" r="5" fill="#F28AB2"/><circle cx="16" cy="-4" r="4" fill="#FFFFFF"/><path d="M-8,0 L-8,-4 M6,0 L6,-6" stroke="#4E9A3A" stroke-width="2"/></g>'; }
+  }
+  d+='<g transform="translate(0,312)"><rect x="-44" y="-150" width="12" height="150" fill="#8A5A2B"/><rect x="32" y="-150" width="12" height="150" fill="#8A5A2B"/><rect x="-92" y="-178" width="184" height="38" rx="8" fill="#6B4A2E"/><text x="0" y="-152" text-anchor="middle" font-size="22" font-weight="700" fill="#FFF8EC">NULLPUNKT</text></g>';
+  d+='<g transform="translate(-150,312)"><rect x="-34" y="-46" width="68" height="46" fill="#F3E3C3" stroke="#8A5A2B" stroke-width="3"/><path d="M-42,-44 L0,-80 L42,-44 Z" fill="#B85C38"/><rect x="-8" y="-26" width="16" height="26" fill="#8A5A2B"/></g>';
+  d+='<g transform="translate(150,312)"><rect x="-30" y="-40" width="60" height="40" fill="#F3E3C3" stroke="#8A5A2B" stroke-width="3"/><path d="M-38,-38 L0,-70 L38,-38 Z" fill="#B85C38"/><rect x="-18" y="-28" width="12" height="12" fill="#8FC3F0"/></g>';
+  G.deco.innerHTML=d;
+  let st='';
+  for(let n=-WMAX;n<=WMAX;n++){
+    const neg=n<0, zero=n===0;
+    const fill=zero?'#FFFFFF':neg?'#D4E5FA':'#F8E2A6', stroke=zero?'#1B2433':neg?'#2F6FD0':'#B07D10', tc=zero?'#1B2433':neg?'#1F4F9E':'#8A5A00';
+    st+='<g class="stone" id="st'+n+'" data-n="'+n+'"><rect x="'+(X(n)-40)+'" y="276" width="80" height="140" fill="transparent"/>'+
+      '<rect class="top" x="'+(X(n)-30)+'" y="'+GY+'" width="60" height="22" rx="11" fill="'+fill+'" stroke="'+stroke+'" stroke-width="3"/>'+
+      '<text x="'+X(n)+'" y="'+(GY+56)+'" text-anchor="middle" font-size="'+(zero?30:26)+'" font-weight="'+(zero?700:600)+'" fill="'+tc+'">'+fmt(n)+'</text></g>';
+  }
+  G.stones.innerHTML=st;
+}
+function resize(){
+  const w=sceneEl.clientWidth||1200, h=sceneEl.clientHeight||460;
+  VW=Math.max(640,Math.min(2600,Math.round(VH*w/h)));
+  svg.setAttribute('viewBox','0 0 '+VW+' '+VH);
+  applyCam(); renderBoss(); renderMist();
+}
+let heroX=0, camX=0, camTarget=0, rafCam=null;
+function applyCam(){
+  const tx=VW/2-camX;
+  G.cam.setAttribute('transform','translate('+tx.toFixed(1)+',0)');
+  G.sky.setAttribute('transform','translate('+(VW/2-camX*0.85).toFixed(1)+',0)');
+  G.par.setAttribute('transform','translate('+(VW/2-camX*0.5).toFixed(1)+',0)');
+}
+function kickCam(){
+  if(rafCam) return;
+  const step=()=>{ camX+=(camTarget-camX)*(RM?1:0.15); if(Math.abs(camTarget-camX)<0.5) camX=camTarget; applyCam(); rafCam=camX!==camTarget?requestAnimationFrame(step):null; };
+  rafCam=requestAnimationFrame(step);
+}
+function setHero(x,y){ heroX=x; G.hero.setAttribute('transform','translate('+x.toFixed(1)+','+(GY+y).toFixed(1)+')'); camTarget=x; kickCam(); }
+function tween(dur,fn){ return new Promise(res=>{ if(RM||dur<=0){ fn(1); res(); return; } const t0=performance.now(); const st=now=>{ const k=Math.min(1,(now-t0)/dur); fn(k); if(k<1) requestAnimationFrame(st); else res(); }; requestAnimationFrame(st); }); }
+function hopTo(n,dur,amp){ const x0=heroX, x1=X(n); return tween(dur,k=>{ const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2; setHero(x0+(x1-x0)*e,-Math.sin(Math.PI*k)*amp); }); }
+async function teleport(n){
+  await tween(160,k=>G.hero.setAttribute('opacity',String(1-k)));
+  setHero(X(n),0); camX=camTarget; applyCam();
+  await tween(160,k=>G.hero.setAttribute('opacity',String(k)));
+}
+function drawHero(){ G.heroBody.innerHTML=heroSVG(S.hero,level(S.xp)); }
+function markStone(){ $$('.stone.st-cur',svg).forEach(e=>e.classList.remove('st-cur')); const e=document.getElementById('st'+S.pos); if(e) e.classList.add('st-cur'); svg.setAttribute('aria-label','Zahlengerade. Dein Held steht auf '+fmt(S.pos)+'.'); }
+
+/* Sprungbögen */
+function renderArcs(){
+  const q=S.quest, t=curTask(); let h='';
+  if(q&&t&&(q.phase==='jump'||q.phase==='done'||q.phase==='fail')&&q.hops.length){
+    let p=t.s; const segs=[];
+    q.hops.forEach(d=>{ const a=p, b=p+d; const last=segs[segs.length-1]; if(last&&last.d===d){ last.to=b; last.k++; } else segs.push({from:a,to:b,d:d,k:1}); h+='<path d="M'+X(a)+','+(GY-4)+' Q'+((X(a)+X(b))/2)+','+(GY-62)+' '+X(b)+','+(GY-4)+'" fill="none" stroke="'+(d>0?'#E0A21B':'#2F6FD0')+'" stroke-width="5" stroke-linecap="round"/>'; p=b; });
+    segs.forEach(s=>{ const mx=(X(s.from)+X(s.to))/2, lbl=(s.d>0?'+':MINUS)+s.k, w=22+lbl.length*14; h+='<g><rect x="'+(mx-w/2)+'" y="'+(GY-128)+'" width="'+w+'" height="36" rx="18" fill="'+(s.d>0?'#FFF0C9':'#DCEBFF')+'" stroke="'+(s.d>0?'#B07D10':'#2F6FD0')+'" stroke-width="2.5"/><text x="'+mx+'" y="'+(GY-102)+'" text-anchor="middle" font-size="22" font-weight="700" fill="'+(s.d>0?'#8A5A00':'#1F4F9E')+'">'+lbl+'</text></g>'; });
+  }
+  G.arcs.innerHTML=h;
+  let f='';
+  if(q&&t&&q.phase!=='start'){ const x=X(t.s); f='<g transform="translate('+(x-26)+','+GY+')"><line x1="0" y1="0" x2="0" y2="-74" stroke="#5A3A1E" stroke-width="4"/><path d="M0,-74 L30,-64 L0,-54 Z" fill="#7A3FC4"/><text x="14" y="-80" text-anchor="middle" font-size="16" font-weight="700" fill="#7A3FC4">Start</text></g>'; }
+  G.flags.innerHTML=f;
+}
+
+/* Nullkönig */
+function renderBoss(){
+  if(!(S.quest&&S.quest.r===4&&!S.progress[4].complete)){ G.boss.innerHTML=''; return; }
+  const max=REGIONS[4].n, hp=Math.max(0,S.boss);
+  let bar=''; for(let i=0;i<max;i++) bar+='<rect x="'+(-60+i*20)+'" y="72" width="16" height="12" rx="3" fill="'+(i<hp?'#E0424F':'#56628A')+'"/>';
+  G.boss.innerHTML='<g transform="translate('+(VW-130)+',40)"><g id="bossInner">'+
+    '<ellipse cx="0" cy="58" rx="44" ry="8" fill="#000" opacity=".15"/><path d="M-34,56 L-22,-6 L22,-6 L34,56 Z" fill="#3B2A5C"/><circle cx="0" cy="-20" r="22" fill="#5B4690"/>'+
+    '<circle cx="-8" cy="-22" r="6" fill="none" stroke="#FFD25A" stroke-width="3"/><circle cx="8" cy="-22" r="6" fill="none" stroke="#FFD25A" stroke-width="3"/>'+
+    '<path d="M-20,-38 L-20,-54 L-10,-44 L0,-58 L10,-44 L20,-54 L20,-38 Z" fill="#FFD25A" stroke="#8A5A00" stroke-width="2"/></g>'+
+    '<text x="0" y="104" text-anchor="middle" font-size="16" font-weight="700" fill="#3B2A5C">Nullkönig</text>'+bar+'</g>';
+}
+
+/* ---------- Spielablauf ---------- */
+function curTask(){ const q=S.quest; return q&&S.tasks[q.r]?S.tasks[q.r][q.i]:null; }
+let chain=Promise.resolve(), pending=0;
+function act(fn){ if(pending>=3) return; pending++; chain=chain.then(fn).catch(e=>console.error(e)).finally(()=>{ pending--; }); }
+function npc(html){ $('#npc').innerHTML=html; }
+function unlocked(r){ return S.demo||r===0||S.progress[r-1].complete; }
+
+function enterRegion(r){
+  if(!unlocked(r)) return;
+  if(!S.tasks[r]||S.progress[r].done>=S.tasks[r].length){ S.tasks[r]=genRegion(r,S.diff); S.progress[r].done=0; }
+  if(r===4&&S.progress[4].done===0) S.boss=REGIONS[4].n;
+  closeAll();
+  startQuest(r,S.progress[r].done);
+}
+function startQuest(r,i){
+  S.quest={r:r,i:i,phase:'start',hops:[],att:0,hint:false};
+  save(); renderAll();
+  const t=curTask();
+  let msg;
+  if(r===0&&i===0) msg='Deine erste Aufgabe! Zuerst suchst du die <b>Startzahl '+fmt(t.s)+'</b>. Tippe auf den Stein mit der '+fmt(t.s)+' oder lauf mit ← →. Drücke dann „Hier starte ich“.';
+  else if(r===4&&i===0) msg='Der Nullkönig! Jede richtige Landung trifft ihn. Such zuerst die <b>Startzahl '+fmt(t.s)+'</b>.';
+  else msg='Neue Aufgabe! Such zuerst die <b>Startzahl '+fmt(t.s)+'</b>.';
+  npc(msg);
+}
+function walkTo(n){
+  return (async()=>{
+    n=Math.max(-WMAX,Math.min(WMAX,n));
+    while(S.pos!==n){ S.pos+=n>S.pos?1:-1; await hopTo(S.pos,Math.abs(n-S.pos)>3?90:150,8); }
+    markStone(); save();
+  })();
+}
+function confirmStart(){
+  const q=S.quest, t=curTask(); if(!q||q.phase!=='start') return;
+  if(S.pos===t.s){
+    q.phase='jump'; q.hops=[]; save(); renderAll();
+    const o=t.ops[0];
+    if(q.r===0&&q.i===0) npc('<span class="ok">Richtig, du stehst auf '+fmt(t.s)+'.</span> Jetzt kommt <b>'+opText(o)+'</b>. Plus heißt: nach <b>rechts</b> springen. Spring '+o[1]+'-mal nach rechts. Drücke dann „Hier lande ich!“.');
+    else if(q.r===0&&q.i===1) npc('<span class="ok">Gut!</span> Jetzt kommt <b>'+opText(o)+'</b>. Minus heißt: nach <b>links</b> springen. Spring '+o[1]+'-mal nach links.');
+    else if(t.ops.length>1) npc('<span class="ok">Gut!</span> Jetzt kommen zwei Sprünge: erst <b>'+opText(t.ops[0])+'</b>, dann <b>'+opText(t.ops[1])+'</b>. Zähle genau mit.');
+    else npc('<span class="ok">Gut!</span> Jetzt kommt <b>'+opText(o)+'</b>. Spring los und zähle mit.');
+  } else {
+    S.stats.startErr++; save();
+    npc('<span class="bad">Noch nicht.</span> Du stehst auf <b>'+fmt(S.pos)+'</b>. Gesucht ist die Startzahl <b>'+fmt(t.s)+'</b>. '+(t.s<0?'Minuszahlen liegen links von der 0.':'Pluszahlen liegen rechts von der 0.'));
+  }
+}
+function move(d){
+  const q=S.quest; if(!q) return;
+  if(q.phase==='start') act(()=>walkTo(S.pos+d));
+  else if(q.phase==='jump') act(async()=>{
+    const np=S.pos+d;
+    if(np<-WMAX||np>WMAX){ npc('Hier endet die Welt. Spring in die andere Richtung.'); return; }
+    q.hops.push(d); S.pos=np; renderArcs(); await hopTo(S.pos,240,40); markStone(); updateCounter(); save();
+  });
+}
+function resetJump(){
+  const q=S.quest, t=curTask(); if(!q||q.phase!=='jump') return;
+  act(async()=>{ q.hops=[]; S.pos=t.s; renderArcs(); await teleport(t.s); markStone(); updateCounter(); save(); npc('Du stehst wieder auf der Startzahl <b>'+fmt(t.s)+'</b>. Versuch es noch einmal.'); });
+}
+function land(){
+  const q=S.quest, t=curTask(); if(!q||q.phase!=='jump') return;
+  if(!q.hops.length){ npc('Du bist noch nicht gesprungen. Nutze die Sprung-Knöpfe.'); return; }
+  act(async()=>{
+    if(S.pos===t.e){
+      const lvBefore=level(S.xp), gain=(q.att===0&&!q.hint)?15:10;
+      q.phase='done'; S.xp+=gain; S.stats.solved++; if(q.att===0) S.stats.first++;
+      S.progress[q.r].done=q.i+1; if(q.r===4) S.boss=Math.max(0,S.boss-1);
+      save(); renderAll();
+      G.fx.innerHTML='<g class="pop"><g transform="translate('+X(t.e)+','+(GY-110)+')"><rect x="-22" y="-14" width="44" height="30" rx="5" fill="#B5793A" stroke="#6B4A2E" stroke-width="3"/><path d="M-22,-14 Q0,-34 22,-14 Z" fill="#C98B48" stroke="#6B4A2E" stroke-width="3"/><rect x="-5" y="-6" width="10" height="10" rx="2" fill="#FFD25A"/></g></g>'+
+        '<g class="floatup"><text x="'+X(t.e)+'" y="'+(GY-150)+'" text-anchor="middle" font-size="26" font-weight="700" fill="#7A3FC4">+'+gain+' EP</text></g>';
+      if(q.r===4){ const b=$('#bossInner'); if(b){ b.classList.remove('shake'); void b.getBBox(); b.classList.add('shake'); } }
+      npc('<span class="ok">Richtig!</span> <b>'+exprText(t)+' = '+fmt(t.e)+'</b>. '+(gain===15?'Auf Anhieb geschafft: +15 EP.':'+10 EP.')+(q.r===4&&S.boss>0?' Der Nullkönig wankt!':''));
+      const lv=level(S.xp); if(lv>lvBefore){ const it=ITEMS.find(x=>x.lv===lv); toast('Level '+lv+'!'+(it?' Neu: '+it.n:'')); drawHero(); }
+    } else {
+      q.att++; S.stats.wrong++; S.hearts=Math.max(0,S.hearts-1);
+      const net=q.hops.reduce((a,b)=>a+b,0);
+      let msg='<span class="bad">Daneben.</span> Du bist auf <b>'+fmt(S.pos)+'</b> gelandet. ';
+      if(t.ops.length===1){ const o=t.ops[0];
+        if(Math.sign(net)!==o[0]) msg+='Achte auf die Richtung: Bei <b>'+(o[0]>0?'+':MINUS)+'</b> springst du nach <b>'+(o[0]>0?'rechts':'links')+'</b>.';
+        else msg+='Die Richtung stimmt. Du bist aber '+Math.abs(net)+'-mal gesprungen. Gesucht sind <b>'+o[1]+'</b> Sprünge.';
+      } else msg+='Mach einen Sprung nach dem anderen: erst <b>'+opText(t.ops[0])+'</b>, dann <b>'+opText(t.ops[1])+'</b>.';
+      q.phase='fail'; save(); renderAll(); npc(msg+' Es geht zurück zum Start.');
+      await new Promise(r=>setTimeout(r,RM?300:1400));
+      q.phase='jump'; q.hops=[]; S.pos=t.s; renderArcs(); await teleport(t.s); markStone(); save(); renderAll();
+      if(S.hearts<=0) show('ovFire');
+    }
+  });
+}
+function next(){
+  const q=S.quest; if(!q||q.phase!=='done') return;
+  G.fx.innerHTML='';
+  if(S.progress[q.r].done>=S.tasks[q.r].length) regionDone(q.r);
+  else startQuest(q.r,q.i+1);
+}
+function regionDone(r){
+  S.progress[r].complete=true; S.scrolls[r]=true; S.hearts=5; S.quest=null;
+  if(r===4) S.finished=true;
+  save(); renderAll();
+  const sc=SCROLLS[r];
+  $('#scrollEyebrow').textContent=REGIONS[r].name+' geschafft';
+  $('#scrollTitle').textContent='Neue Schriftrolle: '+sc.t;
+  $('#scrollBody').innerHTML=scrollHTML(sc);
+  const toExam=r===4&&!S.examResult;
+  $('#scrollNext').textContent=toExam?'Zur Meisterprüfung':r===4?'Zur Urkunde':'Zur Karte';
+  $('#scrollNext').dataset.next=toExam?'exam':r===4?'cert':'map';
+  show('ovScroll');
+  npc('Stark! Du hast <b>'+REGIONS[r].name+'</b> geschafft. Deine Herzen sind wieder voll.');
+}
+function scrollHTML(sc){ return '<div class="scroll"><h3>'+sc.t+'</h3><p class="rule">'+sc.r+'</p>'+sc.ex.map(e=>'<p class="ex">'+e+'</p>').join('')+'</div>'; }
+function useHint(){
+  const q=S.quest, t=curTask(); if(!q||q.phase==='done') return;
+  if(!q.hint){ q.hint=true; S.stats.hints++; save(); }
+  let h='';
+  if(q.phase==='start') h=t.s<0?'Minuszahlen liegen <b>links</b> von der 0. Die '+fmt(t.s)+' ist '+Math.abs(t.s)+' Steine links von der 0.':'Pluszahlen liegen <b>rechts</b> von der 0. Die '+t.s+' ist '+t.s+' Steine rechts von der 0.';
+  else { const o=t.ops[0];
+    h=(o[0]>0?'<b>+ '+o[1]+'</b> heißt: '+o[1]+' Sprünge nach <b>rechts</b>.':'<b>'+MINUS+' '+o[1]+'</b> heißt: '+o[1]+' Sprünge nach <b>links</b>.')+' Zähle bei jedem Sprung laut mit.';
+    if(t.ops.length>1) h+=' Danach: <b>'+opText(t.ops[1])+'</b>.';
+    if(t.ops.length===1&&Math.sign(t.s)!==Math.sign(t.e)&&t.e!==0) h+=' Tipp: Spring erst bis zur 0. Das sind '+Math.abs(t.s)+' Sprünge. Wie viele fehlen dann noch?';
+  }
+  const box=$('#hintBox'); if(box){ box.hidden=false; box.innerHTML='<b class="lbl">Hilfekarte</b>'+h; }
+}
+
+/* ---------- Anzeige ---------- */
+function updateCounter(){
+  const c=$('#counter'), q=S.quest; if(!c||!q) return;
+  if(q.phase==='start'){ c.textContent='Du stehst auf '+fmt(S.pos)+'.'; return; }
+  const r=q.hops.filter(d=>d>0).length, l=q.hops.filter(d=>d<0).length;
+  c.textContent='Du stehst auf '+fmt(S.pos)+' · Sprünge: '+r+' nach rechts, '+l+' nach links';
+}
+function renderTask(){
+  if(S.exam&&S.exam.active){ renderExamTask(); return; }
+  const box=$('#task'), q=S.quest, t=curTask();
+  if(!q||!t){
+    box.innerHTML='<div class="task-top"><span class="task-lbl">Numeria</span></div><div class="controls"><button class="cbtn go" type="button" data-a="map">Zur Karte</button><button class="cbtn ghost" type="button" data-a="book">Zauberbuch</button></div>';
+    return;
+  }
+  let ctr='';
+  if(q.phase==='start') ctr='<button class="cbtn left" type="button" data-a="l" aria-label="Einen Stein nach links gehen">← Gehen</button><button class="cbtn right" type="button" data-a="r" aria-label="Einen Stein nach rechts gehen">Gehen →</button><button class="cbtn go" type="button" data-a="start">Hier starte ich</button><button class="cbtn ghost" type="button" data-a="hint">Hilfekarte</button>';
+  else if(q.phase==='jump') ctr='<button class="cbtn left" type="button" data-a="l">← Sprung links</button><button class="cbtn right" type="button" data-a="r">Sprung rechts →</button><button class="cbtn magic" type="button" data-a="land">Hier lande ich!</button><button class="cbtn ghost" type="button" data-a="reset">↺ Zurück zum Start</button><button class="cbtn ghost" type="button" data-a="hint">Hilfekarte</button>';
+  else if(q.phase==='fail') ctr='<button class="cbtn ghost" type="button" disabled>Zurück zum Start …</button>';
+  else ctr='<button class="cbtn go" type="button" data-a="next">'+(S.progress[q.r].done>=S.tasks[q.r].length?'Schriftrolle öffnen':'Weiter →')+'</button>';
+  box.innerHTML='<div class="task-top"><span class="task-lbl">Aufgabe '+(q.i+1)+' von '+S.tasks[q.r].length+'</span><span class="task-lbl" style="color:var(--magic)">'+(q.phase==='start'?'Schritt 1: Startzahl':q.phase==='done'?'Geschafft':'Schritt 2: Springen')+'</span></div>'+
+    '<div class="expr" aria-label="Aufgabe: '+esc(exprText(t))+'">'+exprHTML(t)+(q.phase==='done'?' <span class="p">=</span> <span class="'+(t.e<0?'n':'p')+'">'+fmt(t.e)+'</span>':'')+'</div>'+
+    '<p class="counter" id="counter"></p><div class="controls">'+ctr+'</div><div class="hintcard" id="hintBox" hidden></div>';
+  updateCounter();
+}
+function renderHud(){
+  const lv=level(S.xp), inLv=S.xp-(lv-1)*XPL;
+  $('#hudHero').innerHTML=heroSVG(S.hero,lv);
+  $('#hudName').textContent=S.hero?S.hero.name:'Held';
+  $('#hudLv').textContent='Lv '+lv;
+  $('#hudXp').style.width=(lv>=8?100:Math.round(inLv/XPL*100))+'%';
+  $('#hudXpText').textContent=S.xp+' EP';
+  const q=S.quest;
+  $('#hudWhere').innerHTML=(S.exam&&S.exam.active)?'Meisterprüfung<small>Ohne Zahlengerade</small>':q?esc(REGIONS[q.r].name)+'<small>'+esc(REGIONS[q.r].sub)+'</small>':'Numeria<small>Wähle ein Ziel auf der Karte</small>';
+  let h=''; for(let i=0;i<5;i++) h+=heartSVG(i<S.hearts);
+  $('#hudHearts').innerHTML=h; $('#hudHearts').setAttribute('aria-label',S.hearts+' von 5 Herzen');
+}
+function renderAll(){ renderHud(); drawHero(); renderTask(); renderArcs(); renderBoss(); markStone(); renderMist(); }
+
+/* ---------- Overlays ---------- */
+const OVS=['ovTitle','ovCreate','ovMap','ovScroll','ovBook','ovFire','ovCert','ovMenu','ovExam','ovExamRes'];
+function show(id){ OVS.forEach(o=>{ $('#'+o).hidden=o!==id; }); const f=$('#'+id+' button, #'+id+' input'); if(f) setTimeout(()=>f.focus(),30); if(id==='ovMap') renderMap(); if(id==='ovBook') renderBook(); if(id==='ovCert') renderCert(); if(id==='ovMenu') renderMenu(); if(id==='ovTitle') renderTitle(); }
+function closeAll(){ OVS.forEach(o=>{ $('#'+o).hidden=true; }); }
+function anyOpen(){ return OVS.some(o=>!$('#'+o).hidden); }
+let toastT=null;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; },2600); }
+
+function renderTitle(){
+  const b=$('#titleBtns');
+  if(S.hero) b.innerHTML='<button class="cbtn go" type="button" id="tContinue">Weiterspielen mit '+esc(S.hero.name)+' (Lv '+level(S.xp)+')</button><button class="cbtn ghost" type="button" id="tNew">Neues Abenteuer</button>';
+  else b.innerHTML='<button class="cbtn go" type="button" id="tNew">Neues Abenteuer</button>';
+  $('#newConfirm').hidden=true;
+}
+$('#titleBtns').addEventListener('click',e=>{
+  if(e.target.closest('#tContinue')){ closeAll(); if(S.exam&&S.exam.active){ renderAll(); setTimeout(()=>{ const f=$('#exIn'); if(f) f.focus(); },60); } else if(S.quest){ renderAll(); const t=curTask(); npc('Willkommen zurück! Deine Aufgabe: <b>'+exprText(t)+'</b>.'); } else show('ovMap'); }
+  if(e.target.closest('#tNew')){ if(S.hero) $('#newConfirm').hidden=false; else openCreate(); }
+});
+$('#newYes').addEventListener('click',()=>{ const demo=S.demo; S=fresh(); S.demo=demo; save(); openCreate(); });
+$('#newNo').addEventListener('click',()=>{ $('#newConfirm').hidden=true; });
+
+/* Held erstellen */
+const draft={avatar:'ritter',color:COLORS[1],skin:SKINS[1],diff:1};
+function openCreate(){ $('#heroName').value=''; $('#nameErr').textContent=''; renderCreate(); show('ovCreate'); }
+function renderCreate(){
+  $('#avatarChoices').innerHTML=AVATARS.map(a=>'<button class="choice" type="button" data-av="'+a.k+'" aria-pressed="'+(draft.avatar===a.k)+'"><svg viewBox="-34 -122 68 128" aria-hidden="true">'+heroSVG({avatar:a.k,color:draft.color,skin:draft.skin},1)+'</svg><b>'+a.n+'</b></button>').join('');
+  $('#colorChoices').innerHTML=COLORS.map(c=>'<button class="sw" type="button" data-col="'+c+'" style="background:'+c+'" aria-label="Farbe '+c+'" aria-pressed="'+(draft.color===c)+'"></button>').join('');
+  $('#skinChoices').innerHTML=SKINS.map(c=>'<button class="sw" type="button" data-skin="'+c+'" style="background:'+c+'" aria-label="Hautfarbe '+c+'" aria-pressed="'+(draft.skin===c)+'"></button>').join('');
+  $('#diffChoices').innerHTML=DIFFS.map(d=>'<button class="choice" type="button" data-diff="'+d.d+'" aria-pressed="'+(draft.diff===d.d)+'"><span class="dots" aria-hidden="true">'+[1,2,3].map(i=>'<i class="'+(i<=d.d?'f':'')+'"></i>').join('')+'</span><b>'+d.n+'</b><small>'+d.s+'</small></button>').join('');
+}
+$('#ovCreate').addEventListener('click',e=>{
+  const a=e.target.closest('[data-av]'), c=e.target.closest('[data-col]'), s=e.target.closest('[data-skin]'), d=e.target.closest('[data-diff]');
+  if(a) draft.avatar=a.dataset.av; if(c) draft.color=c.dataset.col; if(s) draft.skin=s.dataset.skin; if(d) draft.diff=Number(d.dataset.diff);
+  if(a||c||s||d) renderCreate();
+});
+$('#createBack').addEventListener('click',()=>show('ovTitle'));
+$('#createForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=$('#heroName').value.trim().replace(/\s+/g,' ');
+  if(name.length<2){ $('#nameErr').textContent='Gib deinem Helden einen Namen mit mindestens 2 Zeichen.'; return; }
+  const demo=S.demo; S=fresh(); S.demo=demo;
+  S.hero={name:name,avatar:draft.avatar,color:draft.color,skin:draft.skin}; S.diff=draft.diff; S.pos=0;
+  save(); closeAll(); setHero(0,0); camX=0; applyCam(); renderAll();
+  npc('Willkommen in Numeria, <b>'+esc(name)+'</b>! Ich bin Nulla, die Eule vom Nullpunkt. Der Nullkönig hat die Schätze versteckt. Du findest sie, wenn du richtig springst. Merke dir: <b>Plus</b> heißt nach <b>rechts</b>, <b>Minus</b> heißt nach <b>links</b>. Öffne die Karte und starte im Dorf Nullpunkt.');
+});
+
+/* Karte */
+const NODES=[[90,300],[230,180],[380,270],[530,150],[680,245],[820,125]];
+const ICONS=[
+  '<rect x="-16" y="-10" width="32" height="22" fill="#F3E3C3" stroke="#8A5A2B" stroke-width="2.5"/><path d="M-21,-9 L0,-26 L21,-9 Z" fill="#B85C38"/>',
+  '<path d="M-14,10 L0,-24 L14,10 Z" fill="#2F5D7E"/><path d="M-9,-6 L0,-26 L9,-6 Z" fill="#F7FAFE"/>',
+  '<path d="M-20,0 Q-10,-10 0,0 T20,0" fill="none" stroke="#2F6FD0" stroke-width="5" stroke-linecap="round"/><path d="M-20,10 Q-10,0 0,10 T20,10" fill="none" stroke="#7FB2E0" stroke-width="5" stroke-linecap="round"/>',
+  '<path d="M-22,12 L-6,-18 L6,-18 L22,12 Z" fill="#7A4E26"/><path d="M-6,-18 L6,-18 L2,-26 L-2,-26 Z" fill="#E0424F"/><circle cx="0" cy="-30" r="4" fill="#F08A24"/>',
+  '<rect x="-12" y="-24" width="24" height="36" fill="#5B4690"/><path d="M-15,-24 L-15,-32 L-8,-28 L0,-36 L8,-28 L15,-32 L15,-24 Z" fill="#FFD25A"/><rect x="-4" y="0" width="8" height="12" fill="#2B1A4F"/>',
+  '<circle cx="0" cy="-2" r="16" fill="#FFD25A" stroke="#8A5A00" stroke-width="3"/><path d="M-10,12 L-14,26 L-4,20 L0,28 L4,20 L14,26 L10,12" fill="#E0424F"/><text y="4" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#8A5A00">?</text>'
+];
+function examUnlocked(){ return S.demo||S.examOpen||S.progress[2].complete; }
+function renderMap(){
+  const m=$('#map'); let h='<rect x="0" y="0" width="900" height="400" rx="18" fill="#F3E3C3"/><path d="M0,330 Q200,300 300,360 T600,330 T900,340 L900,400 L0,400 Z" fill="#E8D3A8"/>';
+  h+='<path d="M'+NODES.map(n=>n.join(',')).join(' L')+'" fill="none" stroke="#8A5A2B" stroke-width="5" stroke-dasharray="4 12" stroke-linecap="round"/>';
+  NODES.forEach((n,r)=>{
+    if(r===5){ const ok=examUnlocked(), done=!!S.examResult;
+      h+='<g class="mapnode'+(ok?'':' locked')+'" data-exam="1" transform="translate('+n[0]+','+n[1]+')"><circle r="40" fill="'+(done?'#DDF3E5':ok?'#FFF0C9':'#D6CCB8')+'" stroke="'+(done?'#1E7F45':ok?'#B07D10':'#A8997A')+'" stroke-width="5"/>'+(ok?ICONS[5]:'<rect x="-10" y="-4" width="20" height="16" rx="3" fill="#8A7B60"/><path d="M-6,-4 L-6,-10 Q0,-18 6,-10 L6,-4" fill="none" stroke="#8A7B60" stroke-width="3"/>')+
+        (done?'<circle cx="28" cy="-28" r="13" fill="#1E7F45"/><path d="M22,-28 L27,-23 L35,-33" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>':'')+
+        '<text y="66" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="19" font-weight="600" fill="#1B2433">Meisterprüfung</text></g>';
+      return; }
+    const ok=unlocked(r), done=S.progress[r].complete;
+    h+='<g class="mapnode'+(ok?'':' locked')+'" data-r="'+r+'" transform="translate('+n[0]+','+n[1]+')"><circle r="40" fill="'+(done?'#DDF3E5':ok?'#FFF8EC':'#D6CCB8')+'" stroke="'+(done?'#1E7F45':ok?'#7A3FC4':'#A8997A')+'" stroke-width="5"/>'+
+      (ok?ICONS[r]:'<rect x="-10" y="-4" width="20" height="16" rx="3" fill="#8A7B60"/><path d="M-6,-4 L-6,-10 Q0,-18 6,-10 L6,-4" fill="none" stroke="#8A7B60" stroke-width="3"/>')+
+      (done?'<circle cx="28" cy="-28" r="13" fill="#1E7F45"/><path d="M22,-28 L27,-23 L35,-33" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>':'')+
+      '<text y="66" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="19" font-weight="600" fill="#1B2433">'+REGIONS[r].name+'</text></g>';
+  });
+  const cur=S.quest?S.quest.r:Math.max(0,S.progress.findIndex(p=>!p.complete));
+  const at=NODES[cur<0?4:cur];
+  h+='<g transform="translate('+(at[0]-52)+','+(at[1]+8)+') scale(.55)">'+heroSVG(S.hero,level(S.xp))+'</g>';
+  m.innerHTML=h;
+  $('#mapList').innerHTML=REGIONS.map((g,r)=>'<button class="mbtn'+(S.progress[r].complete?' done':'')+'" type="button" data-r="'+r+'"'+(unlocked(r)?'':' disabled')+'><b>'+(r+1)+'. '+g.name+(S.progress[r].complete?' ✓':'')+'</b><small>'+(unlocked(r)?g.sub+(S.progress[r].done&&!S.progress[r].complete?' · '+S.progress[r].done+'/'+g.n:''):'Noch gesperrt')+'</small></button>').join('')+
+    '<button class="mbtn'+(S.examResult?' done':'')+'" type="button" data-exam="1"'+(examUnlocked()?'':' disabled')+'><b>6. Meisterprüfung'+(S.examResult?' ✓':'')+'</b><small>'+(S.examResult?'Ergebnis: '+S.examResult.score+' von 10':examUnlocked()?'Ohne Zahlengerade':'Nach dem Frostfluss')+'</small></button>';
+  const gate=$('#examGate');
+  if(examUnlocked()) gate.hidden=true;
+  else { gate.hidden=false; $('#gateMsg').textContent=''; }
+}
+$('#ovMap').addEventListener('click',e=>{
+  const x=e.target.closest('[data-exam]'); if(x){ if(!x.disabled&&examUnlocked()) openExam(); return; }
+  const n=e.target.closest('[data-r]'); if(n&&!n.disabled&&unlocked(Number(n.dataset.r))) enterRegion(Number(n.dataset.r));
+});
+function hashWord(v){ let h=0x811c9dc5; const s='ZG-EXAM|'+v; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; }
+function tryGate(){ const w=$('#gateWord').value.trim().toUpperCase(); if(hashWord(w)===889372446){ S.examOpen=true; save(); $('#gateWord').value=''; renderMap(); toast('Meisterprüfung freigeschaltet!'); } else { $('#gateMsg').textContent='Das Wort stimmt nicht.'; } }
+$('#gateGo').addEventListener('click',tryGate);
+$('#gateWord').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); tryGate(); } });
+$('#mapBook').addEventListener('click',()=>show('ovBook'));
+
+/* Meisterprüfung */
+function openExam(){
+  if(S.exam&&S.exam.active){ closeAll(); renderAll(); return; }
+  $('#examNote').textContent=S.examResult?'Du hast die Prüfung schon gemacht ('+S.examResult.score+' von 10). Jetzt startet eine Übungsrunde. Sie zählt nicht.':'Es zählt nur dein erster Versuch.';
+  $('#examGo').textContent=S.examResult?'Übungsrunde starten':'Prüfung starten';
+  show('ovExam');
+}
+function startExam(){
+  S.quest=null; G.fx.innerHTML='';
+  S.exam={active:true,official:!S.examResult,tasks:genExam(S.diff),a:[],ans:[],st:Date.now(),end:0};
+  save(); closeAll(); renderAll();
+  npc('Die Zahlengerade ist im Nebel verschwunden. Rechne im Kopf und tippe das Ergebnis ein. Du hast für jede Aufgabe <b>nur einen Versuch</b>.');
+  setTimeout(()=>{ const f=$('#exIn'); if(f) f.focus(); },60);
+}
+function examSubmit(){
+  const ex=S.exam; if(!ex||!ex.active) return;
+  const i=ex.a.length, t=ex.tasks[i], inp=$('#exIn'), v=parseNum(inp?inp.value:'');
+  if(isNaN(v)){ $('#exErr').textContent='Gib eine ganze Zahl ein, zum Beispiel −3 oder 4.'; return; }
+  ex.a.push(v===t.e?3:(Math.abs(v)===Math.abs(t.e)?2:1)); ex.ans.push(v);
+  if(ex.a.length>=ex.tasks.length) return finishExam();
+  save(); renderTask();
+  npc('Antwort gespeichert. Weiter mit Aufgabe '+(ex.a.length+1)+'.');
+  setTimeout(()=>{ const f=$('#exIn'); if(f) f.focus(); },30);
+}
+function finishExam(){
+  const ex=S.exam; ex.end=Date.now(); ex.active=false;
+  const score=ex.a.filter(v=>v===3).length, vz=ex.a.filter(v=>v===2).length, minutes=Math.max(1,Math.round((ex.end-ex.st)/60000));
+  if(ex.official){ S.examResult={score:score,vz:vz,a:ex.a.slice(),minutes:minutes,diff:S.diff}; S.xp+=score*5; }
+  save(); renderAll();
+  $('#exResEyebrow').textContent=ex.official?'Meisterprüfung ohne Zahlengerade':'Übungsrunde (zählt nicht)';
+  $('#exScore').textContent=score+' von 10';
+  $('#exVerdict').textContent=score>=8?'Meisterlich! Du kannst es auch ohne Zahlengerade.':score>=5?'Gut! Ein paar Aufgaben übst du noch mit der Zahlengerade.':'Übe noch einmal mit der Zahlengerade. Dann klappt es auch im Kopf.';
+  $('#exList').innerHTML=ex.a.map((v,i)=>'<li><span class="ric '+(v===3?'ok':v===2?'vz':'no')+'" aria-hidden="true">'+(v===3?'✓':v===2?'±':'✗')+'</span>Aufgabe '+(i+1)+'<span class="sr">'+(v===3?' richtig':v===2?' Vorzeichen falsch':' falsch')+'</span></li>').join('');
+  $('#exNote').innerHTML=vz?'<b>±</b> heißt: Die Zahl stimmte, aber das Vorzeichen war falsch. Das war bei '+vz+(vz===1?' Aufgabe':' Aufgaben')+' so. Achte auf das Minus!':'';
+  show('ovExamRes');
+  npc(ex.official?'Prüfung beendet: <b>'+score+' von 10</b>.'+(score>0?' +'+score*5+' EP.':''):'Übungsrunde beendet: <b>'+score+' von 10</b>.');
+}
+function renderExamTask(){
+  const ex=S.exam, i=ex.a.length, t=ex.tasks[i];
+  $('#task').innerHTML='<div class="task-top"><span class="task-lbl">'+(ex.official?'Meisterprüfung':'Übungsrunde')+' · Aufgabe '+(i+1)+' von '+ex.tasks.length+'</span><span class="task-lbl" style="color:var(--magic)">Ohne Zahlengerade</span></div>'+
+    '<div class="exprog" aria-hidden="true">'+ex.tasks.map((x,k)=>'<i class="'+(k<i?'d':k===i?'c':'')+'"></i>').join('')+'</div>'+
+    '<div class="expr plain" aria-label="Aufgabe: '+esc(exprText(t))+'">'+exprHTML(t)+' <span class="p">= ?</span></div>'+
+    '<div class="controls" style="display:flex"><span class="num-in"><button class="sign-btn" type="button" data-a="exSign" aria-label="Minuszeichen setzen oder entfernen">±</button><label class="sr" for="exIn">Dein Ergebnis</label><input id="exIn" type="text" inputmode="text" autocomplete="off" placeholder="Ergebnis"></span><button class="cbtn magic" type="button" data-a="exSubmit">Antwort abgeben</button></div>'+
+    '<p class="err" id="exErr" aria-live="polite"></p>';
+  const f=$('#exIn'); if(f) f.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); examSubmit(); } });
+}
+function renderMist(){
+  const on=!!(S.exam&&S.exam.active);
+  svg.classList.toggle('fog',on);
+  if(!on){ $('#mist').innerHTML=''; return; }
+  let h=''; const r=seeded(5);
+  for(let k=0;k<14;k++){ const x=r()*VW, y=270+r()*120, rx=120+r()*160; h+='<ellipse cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" rx="'+rx.toFixed(0)+'" ry="'+(28+r()*24).toFixed(0)+'" fill="#FFFFFF" opacity="'+(0.55+r()*0.3).toFixed(2)+'"/>'; }
+  h+='<text x="'+(VW/2)+'" y="410" text-anchor="middle" font-size="26" font-weight="700" fill="#5A6577">Die Zahlengerade ist im Nebel verschwunden</text>';
+  $('#mist').innerHTML=h;
+}
+$('#examGo').addEventListener('click',startExam);
+$('#examBack').addEventListener('click',()=>show('ovMap'));
+$('#exCert').addEventListener('click',()=>show('ovCert'));
+$('#exPractice').addEventListener('click',openExam);
+$('#exMap').addEventListener('click',()=>show('ovMap'));
+
+/* Zauberbuch, Urkunde, Menü */
+function renderBook(){ $('#bookList').innerHTML=SCROLLS.map((sc,r)=>S.scrolls[r]?scrollHTML(sc):'<div class="scroll locked-scroll"><h3>Schriftrolle '+(r+1)+'</h3><p class="rule">Noch versiegelt. Schaffe die Region „'+REGIONS[r].name+'“.</p></div>').join(''); }
+function statsHTML(){ return '<div class="stat"><b>'+S.stats.solved+'</b><span>Aufgaben gelöst</span></div><div class="stat"><b>'+S.stats.first+'</b><span>davon beim 1. Versuch</span></div><div class="stat"><b>'+S.stats.hints+'</b><span>Hilfekarten genutzt</span></div><div class="stat"><b>Lv '+level(S.xp)+'</b><span>'+S.xp+' EP</span></div>'+(S.examResult?'<div class="stat"><b>'+S.examResult.score+'/10</b><span>Meisterprüfung ohne Zahlengerade'+(S.examResult.vz?' · '+S.examResult.vz+'× Vorzeichen':'')+'</span></div>':''); }
+function renderCert(){
+  $('#certHero').innerHTML=heroSVG(S.hero,level(S.xp));
+  $('#certName').textContent=S.hero?S.hero.name:'Held';
+  const dn=DIFFS[S.diff-1].n;
+  const ex=S.examResult;
+  $('#certText').textContent=(S.finished?'hat den Nullkönig besiegt':'ist durch Numeria gereist')+(ex?' und die Meisterprüfung ohne Zahlengerade abgelegt: '+ex.score+' von 10 Punkten'+(ex.score>=8?'. Meister der Zahlen!':'.'):'. Die Meisterprüfung fehlt noch.')+' Stufe: '+dn+'.';
+  $('#certStats').innerHTML=statsHTML();
+}
+function renderMenu(){ $('#menuStats').innerHTML=statsHTML(); }
+$('#scrollNext').addEventListener('click',()=>{ const n=$('#scrollNext').dataset.next; if(n==='exam') openExam(); else show(n==='cert'?'ovCert':'ovMap'); });
+$('#bookClose').addEventListener('click',()=>{ if(S.quest) closeAll(); else show('ovMap'); });
+$('#certBook').addEventListener('click',()=>show('ovBook'));
+$('#certMap').addEventListener('click',()=>show('ovMap'));
+$('#fireRest').addEventListener('click',()=>{ S.hearts=5; save(); closeAll(); renderAll(); npc('Ausgeruht! Deine Herzen sind wieder voll. Weiter geht es: <b>'+exprText(curTask())+'</b>.'); });
+$('#btnMap').addEventListener('click',()=>{ if(S.hero) show('ovMap'); });
+$('#btnBook').addEventListener('click',()=>{ if(S.hero) show('ovBook'); });
+$('#btnMenu').addEventListener('click',()=>{ if(S.hero) show('ovMenu'); else show('ovTitle'); });
+$('#menuBack').addEventListener('click',()=>{ closeAll(); if(!S.quest) show('ovMap'); });
+$('#menuTitle').addEventListener('click',()=>show('ovTitle'));
+
+/* Demo-Modus */
+function hashPin(v){ let h=0x811c9dc5; const s='RZ-PIN|'+v; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return h>>>0; }
+$('#pinGo').addEventListener('click',()=>{ if(hashPin($('#pin').value.trim())===185721127){ S.demo=true; save(); $('#pin').value=''; $('#pinMsg').textContent='Alle Regionen sind frei.'; $('#pinMsg').style.color='var(--ok)'; } else { $('#pinMsg').textContent='Die PIN stimmt nicht.'; $('#pinMsg').style.color=''; } });
+
+/* Steuerung */
+$('#task').addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]'); if(!b) return;
+  const a=b.dataset.a;
+  if(a==='exSubmit'){ examSubmit(); return; }
+  if(a==='exSign'){ const f=$('#exIn'); if(f){ let v=f.value.trim(); f.value=/^[-\u2212\u2013]/.test(v)?v.replace(/^[-\u2212\u2013]\s*/,''):MINUS+v.replace(/^\+/,''); f.focus(); } return; }
+  if(a==='l') move(-1); else if(a==='r') move(1); else if(a==='start') confirmStart(); else if(a==='land') land(); else if(a==='reset') resetJump(); else if(a==='hint') useHint(); else if(a==='next') next(); else if(a==='map') show('ovMap'); else if(a==='book') show('ovBook');
+});
+svg.addEventListener('click',e=>{
+  const st=e.target.closest('.stone'); const q=S.quest; if(!st||!q) return;
+  if(q.phase==='start') act(()=>walkTo(Number(st.dataset.n)));
+  else if(q.phase==='jump') npc('Beim Springen benutzt du die Sprung-Knöpfe. So kannst du jeden Sprung zählen.');
+});
+document.addEventListener('keydown',e=>{
+  if(anyOpen()||!S.quest||(S.exam&&S.exam.active)) return;
+  if(e.target&&e.target.matches&&e.target.matches('input,textarea')) return;
+  const q=S.quest;
+  if(e.key==='ArrowLeft'){ e.preventDefault(); move(-1); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); move(1); }
+  else if(e.key==='Enter'&&!(e.target.closest&&e.target.closest('button'))){ e.preventDefault(); if(q.phase==='start') confirmStart(); else if(q.phase==='jump') land(); else if(q.phase==='done') next(); }
+  else if(e.key==='h'||e.key==='H'){ useHint(); }
+});
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(resize,100); });
+
+/* Start */
+buildWorld();
+if(S.quest&&S.quest.phase==='fail'){ S.quest.phase='jump'; S.quest.hops=[]; const t=curTask(); if(t) S.pos=t.s; }
+setHero(X(S.pos),0); camX=camTarget; resize();
+renderAll();
+if(S.exam&&S.exam.active){ npc('Deine Meisterprüfung läuft noch. Weiter mit Aufgabe '+(S.exam.a.length+1)+'.'); }
+else if(S.hero){ npc(S.quest?'Willkommen zurück, <b>'+esc(S.hero.name)+'</b>!':'Willkommen zurück! Öffne die Karte.'); }
+else npc('Hallo! Ich bin Nulla, die Eule vom Nullpunkt. Erschaffe zuerst deinen Helden.');
+show('ovTitle');
+})();
+</script>
+</body>
+</html>
